@@ -2,7 +2,7 @@ let map;
 let trackData = [];
 let cyclistMarker;
 
-initMap([-5.84, 43.36]); // Avilés
+initMap([-5.904324, 43.544351]); // Avilés
 
 function initMap(centerCoords) {
   map = new maplibregl.Map({
@@ -78,6 +78,7 @@ function initMap(centerCoords) {
         trackData = pointsData.map((point, index) => {
           let slope = 0;
           let speed = 0;
+          let bearing = 0;
           if (index > 0) {
             const prev = pointsData[index - 1];
             const distance = haversineDistance(prev.lat, prev.lon, point.lat, point.lon);
@@ -88,10 +89,12 @@ function initMap(centerCoords) {
               const timeDiff = (point.time - prev.time) / 1000; // segundos
               speed = timeDiff > 0 ? distance / timeDiff : 0; // m/s
             }
-          }
-          return { ...point, slope, speed };
-        });
 
+            bearing = calculateBearing(prev.lat, prev.lon, point.lat, point.lon);
+          }
+          return { ...point, slope, speed, bearing };
+        });
+        smoothBearingsCircular(50);
         drawTrack();
         drawCyclistPoint(trackData[0].lat, trackData[0].lon);
 
@@ -136,7 +139,7 @@ function initMap(centerCoords) {
       let currentProgress = parseFloat(progressBar.value);
 
       animationInterval = setInterval(() => {
-        currentProgress += 0.1;
+        currentProgress += 0.05;
         if (currentProgress > 100) {
           currentProgress = 0;
         }
@@ -230,13 +233,102 @@ function drawCyclistPoint(lon, lat) {
   
   
 
-  function moveCyclist(progress) {
-    const index = Math.floor(progress * (trackData.length - 1));
-    const point = trackData[index];
-    drawCyclistPoint(point.lon, point.lat); // GeoJSON circle
+function moveCyclist(progress) {
+  const index = Math.floor(progress * (trackData.length - 1));
+  const point = trackData[index];
+
+  drawCyclistPoint(point.lon, point.lat);
+
+  if (index < trackData.length - 1) {
+    const nextPoint = trackData[index + 1];
+
+    const cameraDistance = 0.0005; // Más cerca (~5 metros aprox)
+    const cameraOffset = offsetPosition(point.lat, point.lon, point.bearing + 180, cameraDistance);
+
+    map.easeTo({
+      center: [cameraOffset.lon, cameraOffset.lat],
+      zoom: 15,
+      bearing: point.bearing,
+      pitch: 70,
+      duration: 100
+    });
+  }
+}
+
+function smoothBearingsCircular(windowSize = 5) {
+    const halfWindow = Math.floor(windowSize / 2);
+    const smoothedBearings = [];
+  
+    for (let i = 0; i < trackData.length; i++) {
+      let sumSin = 0;
+      let sumCos = 0;
+      let count = 0;
+  
+      for (let j = i - halfWindow; j <= i + halfWindow; j++) {
+        if (j >= 0 && j < trackData.length) {
+          const angle = (trackData[j].bearing * Math.PI) / 180;
+          sumSin += Math.sin(angle);
+          sumCos += Math.cos(angle);
+          count++;
+        }
+      }
+  
+      const avgAngle = Math.atan2(sumSin / count, sumCos / count);
+      const avgBearing = (avgAngle * 180) / Math.PI;
+      smoothedBearings.push((avgBearing + 360) % 360); // Normalizar entre 0 y 360
+    }
+  
+    for (let i = 0; i < trackData.length; i++) {
+      trackData[i].bearing = smoothedBearings[i];
+    }
   }
   
   
+
+function calculateBearing(lat1, lon1, lat2, lon2) {
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x =
+      Math.cos(φ1) * Math.sin(φ2) -
+      Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  
+    const θ = Math.atan2(y, x);
+    const bearing = ((θ * 180) / Math.PI + 360) % 360;
+    return bearing;
+  }
+
+  function offsetPosition(lat, lon, bearing, distance) {
+    const R = 6371e3; // Radio terrestre en metros
+    const δ = distance / R; // Distancia angular
+    const θ = (bearing * Math.PI) / 180;
+  
+    const φ1 = (lat * Math.PI) / 180;
+    const λ1 = (lon * Math.PI) / 180;
+  
+    const φ2 = Math.asin(
+      Math.sin(φ1) * Math.cos(δ) +
+        Math.cos(φ1) * Math.sin(δ) * Math.cos(θ)
+    );
+  
+    const λ2 =
+      λ1 +
+      Math.atan2(
+        Math.sin(θ) * Math.sin(δ) * Math.cos(φ1),
+        Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2)
+      );
+  
+    return {
+      lat: (φ2 * 180) / Math.PI,
+      lon: (λ2 * 180) / Math.PI
+    };
+  }
+  
+  
+
+    
 
 function getMinMax(property) {
   const values = trackData.map((p) => p[property]).filter((v) => !isNaN(v));
@@ -255,14 +347,22 @@ function recordTrackAnimation() {
       return;
     }
   
+    let FPS = 20;
     const canvas = map.getCanvas();
-    const stream = canvas.captureStream(30); // 30 FPS
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const stream = canvas.captureStream(FPS);
+
+    const options = {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 10 * 1024 * 1024 // 50 Mbps
+      };
+
+    const recorder = new MediaRecorder(stream, options);
   
     const chunks = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
+
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
@@ -270,12 +370,19 @@ function recordTrackAnimation() {
       a.href = url;
       a.download = 'track_animation.webm';
       a.click();
+      progressBar.style.display = 'none'; // Ocultar la barra tras finalizar
     };
   
     let currentFrame = 0;
-    const totalFrames = 300; // Más frames para fluidez
-    const durationMs = 10000; // 10 segundos
+    const durationMs = 60000; // 60 segundos
+    const totalFrames = FPS * durationMs/1000; // Más frames para fluidez
     const intervalMs = durationMs / totalFrames;
+  
+
+    const recordingProgressContainer = document.getElementById('recordingProgressContainer');
+    const recordingProgressBar = document.getElementById('recordingProgressBar');
+    
+    recordingProgressContainer.style.display = 'block';
   
     recorder.start();
   
@@ -287,13 +394,17 @@ function recordTrackAnimation() {
       map.triggerRepaint();
   
       currentFrame++;
+      recordingProgressBar.value = (currentFrame / totalFrames) * 100;
+  
       if (currentFrame < totalFrames) {
         setTimeout(animateFrame, intervalMs);
       } else {
         recorder.stop();
+        recordingProgressContainer.style.display = 'none'; // Ocultar la barra al finalizar
       }
     }
   
     animateFrame();
   }
+  
   
