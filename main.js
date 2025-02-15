@@ -1,5 +1,6 @@
 let map;
-let trackData = []; // Guardará puntos con lat, lon, ele, slope, speed
+let trackData = [];
+let cyclistMarker;
 
 initMap([-5.84, 43.36]); // Avilés
 
@@ -65,54 +66,40 @@ function initMap(centerCoords) {
         const xmlDoc = parser.parseFromString(gpxText, 'application/xml');
         const trackPoints = Array.from(xmlDoc.getElementsByTagName('trkpt'));
 
-        // Extraer puntos (lat, lon, ele, time)
         const pointsData = trackPoints.map((point) => {
           const lat = parseFloat(point.getAttribute('lat'));
           const lon = parseFloat(point.getAttribute('lon'));
-          const ele = parseFloat(
-            point.getElementsByTagName('ele')[0].textContent
-          );
+          const ele = parseFloat(point.getElementsByTagName('ele')[0].textContent);
           const timeNode = point.getElementsByTagName('time')[0];
           const time = timeNode ? new Date(timeNode.textContent).getTime() : null;
           return { lat, lon, ele, time };
         });
 
-        
-        // Calcular slope y speed
         trackData = pointsData.map((point, index) => {
           let slope = 0;
           let speed = 0;
-
           if (index > 0) {
             const prev = pointsData[index - 1];
-            const distance = haversineDistance(
-              prev.lat,
-              prev.lon,
-              point.lat,
-              point.lon
-            );
+            const distance = haversineDistance(prev.lat, prev.lon, point.lat, point.lon);
             const elevationDiff = point.ele - prev.ele;
             slope = distance > 0 ? elevationDiff / distance : 0;
 
             if (point.time && prev.time) {
               const timeDiff = (point.time - prev.time) / 1000; // segundos
-              speed = timeDiff > 0 ? (distance / timeDiff) : 0; // m/s
+              speed = timeDiff > 0 ? distance / timeDiff : 0; // m/s
             }
           }
-
           return { ...point, slope, speed };
         });
 
-
-        // Dibujar el track inicial
         drawTrack();
+        placeCyclistMarker(trackData[0].lat, trackData[0].lon);
 
-        // Ajustar mapa a track
         const bounds = new maplibregl.LngLatBounds();
         trackData.forEach((p) => bounds.extend([p.lon, p.lat]));
-        if (trackData.length > 0) {
-          map.fitBounds(bounds, { padding: 50 });
-        }
+        map.fitBounds(bounds, { padding: 50 });
+
+        document.getElementById('trackControls').style.display = 'block';
       };
       reader.readAsText(file);
     }
@@ -126,12 +113,40 @@ function initMap(centerCoords) {
     drawTrack();
   });
 
-  document
-    .getElementById('fixedColorPicker')
-    .addEventListener('input', drawTrack);
+  document.getElementById('fixedColorPicker').addEventListener('input', drawTrack);
+
+  // Control de ciclista
+  const progressBar = document.getElementById('progressBar');
+  const playButton = document.getElementById('playButton');
+  let animationInterval = null;
+
+  progressBar.addEventListener('input', (e) => {
+    const progress = parseFloat(e.target.value) / 100;
+    moveCyclist(progress);
+  });
+
+  playButton.addEventListener('click', () => {
+    if (animationInterval) {
+      clearInterval(animationInterval);
+      animationInterval = null;
+      playButton.textContent = 'Play';
+    } else {
+      let currentProgress = parseFloat(progressBar.value);
+
+      animationInterval = setInterval(() => {
+        currentProgress += 0.1;
+        if (currentProgress > 100) {
+          currentProgress = 0;
+        }
+        progressBar.value = currentProgress;
+        moveCyclist(currentProgress / 100);
+      }, 30);
+
+      playButton.textContent = 'Pause';
+    }
+  });
 }
 
-// Calcular distancia 2D
 function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -146,96 +161,64 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Dibujar track con el modo seleccionado
 function drawTrack() {
   if (trackData.length < 2) return;
 
   const mode = document.getElementById('colorMode').value;
   const fixedColor = document.getElementById('fixedColorPicker').value;
 
-  const segments = [];
-  for (let i = 0; i < trackData.length - 1; i++) {
-    segments.push({
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [trackData[i].lon, trackData[i].lat],
-          [trackData[i + 1].lon, trackData[i + 1].lat]
-        ]
-      },
-      properties: {
-        slope: trackData[i].slope,
-        elevation: trackData[i].ele,
-        speed: trackData[i].speed
-      }
-    });
-  }
+  const segments = trackData.slice(0, -1).map((p, i) => ({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates: [[p.lon, p.lat], [trackData[i + 1].lon, trackData[i + 1].lat]] },
+    properties: { slope: p.slope, elevation: p.ele, speed: p.speed }
+  }));
 
   if (map.getSource('gpx-track')) {
     map.removeLayer('gpx-track-line');
     map.removeSource('gpx-track');
   }
 
-  map.addSource('gpx-track', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: segments
-    }
-  });
+  map.addSource('gpx-track', { type: 'geojson', data: { type: 'FeatureCollection', features: segments } });
 
-  const colorProperty = {
-    slope: 'slope',
-    elevation: 'elevation',
-    speed: 'speed'
-  }[mode];
-
-  if (mode === 'fixed') {
-    colorPaint = fixedColor;
-  } else {
-    const { min, max } = getMinMax(colorProperty);
-    console.log(`Min ${colorProperty}: ${min}, Max ${colorProperty}: ${max}`);
-  
-    // Si min y max son iguales (track plano o constante), evitamos problemas
-    if (min === max) {
-      colorPaint = fixedColor;
-    } else {
-      colorPaint = [
-        'interpolate',
-        ['linear'],
-        ['get', colorProperty],
-        min, '#00ff00', // Verde en mínimo
-        (min + max) / 2, '#ffff00', // Amarillo en valor medio
-        max, '#ff0000' // Rojo en máximo
-      ];
-    }
-  }
-  
+  const { min, max } = getMinMax(mode);
+  const colorPaint = mode === 'fixed' || min === max
+    ? fixedColor
+    : ['interpolate', ['linear'], ['get', mode], min, '#00ff00', (min + max) / 2, '#ffff00', max, '#ff0000'];
 
   map.addLayer({
     id: 'gpx-track-line',
     type: 'line',
     source: 'gpx-track',
     layout: {},
-    paint: {
-      'line-width': 4,
-      'line-color': colorPaint
-    }
+    paint: { 'line-width': 4, 'line-color': colorPaint }
   });
 }
 
+function placeCyclistMarker(lat, lon) {
+    if (!cyclistMarker) {
+      const markerEl = document.createElement('div');
+      markerEl.style.width = '16px';
+      markerEl.style.height = '16px';
+      markerEl.style.backgroundColor = 'orange';
+      markerEl.style.border = '2px solid black';
+      markerEl.style.borderRadius = '50%'; // Hace que sea círculo
+      markerEl.style.boxSizing = 'border-box'; // Para que el borde no aumente el tamaño
+  
+      cyclistMarker = new maplibregl.Marker({
+        element: markerEl
+      }).setLngLat([lon, lat]).addTo(map);
+    } else {
+      cyclistMarker.setLngLat([lon, lat]);
+    }
+  }
+  
+
+function moveCyclist(progress) {
+  const i = Math.floor(progress * (trackData.length - 1));
+  placeCyclistMarker(trackData[i].lat, trackData[i].lon);
+}
 
 function getMinMax(property) {
-  const source = map.getSource('gpx-track');
-  if (!source) return { min: NaN, max: NaN };
-
-  const features = source._data.features;
-  const values = features.map((f) => f.properties[property]).filter((v) => !isNaN(v));
-
-  if (values.length === 0) return { min: NaN, max: NaN };
-
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return { min, max };
+  const values = trackData.map((p) => p[property]).filter((v) => !isNaN(v));
+  return { min: Math.min(...values), max: Math.max(...values) };
 }

@@ -8,22 +8,28 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="map"></div>
+  
     <div id="controls">
-        <h1>Mapa 3D con Terreno y Track GPX</h1>
-        <input type="file" id="gpxFileInput" accept=".gpx" />
+      <input type="file" id="gpxFileInput" accept=".gpx" />
+      <div id="trackControls" style="display: none;">
+        <br>
+        <label for="colorMode">Color por:</label>
         <select id="colorMode">
           <option value="slope">Pendiente</option>
           <option value="elevation">Altitud</option>
           <option value="speed">Velocidad</option>
-          <option value="fixed">Color fijo</option>
+          <option value="fixed">Fijo</option>
         </select>
         <input type="color" id="fixedColorPicker" value="#ff0000" style="display:none;">
-      </div>
-      <div id="map"></div>
+        <br><br>
       
-    
-
-    <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js"></script>
+        <button id="playButton">Play</button>
+        <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1">
+      </div>      
+    </div>
+  
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

@@ -1,27 +1,26 @@
-body {
+body, html {
     margin: 0;
+    padding: 0;
+    height: 100%;
     font-family: Arial, sans-serif;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
   }
-  
-  h1 {
-    font-size: 18px;
-    margin: 10px;
-  }
-  
-  #controls {
-    background-color: #f3f3f3;
-    padding: 10px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    border-bottom: 1px solid #ccc;
-  }
-  
+
   #map {
-    flex-grow: 1;
+    position: absolute;
+    top: 0;
+    bottom: 0;
     width: 100%;
   }
-  
+
+  #controls {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  #progressBar {
+    width: 200px;
+  }
