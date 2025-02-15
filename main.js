@@ -1,117 +1,58 @@
-const fileInput = document.getElementById("gpxFileInput");
+  initMap([-5.84, 43.36]); // Coordenadas de Avilés, Asturias, España
 
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const gpxText = e.target.result;
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(gpxText, "application/xml");
-
-    const trackPoints = Array.from(xmlDoc.getElementsByTagName("trkpt"));
-    if (trackPoints.length === 0) {
-      alert("No se encontraron puntos de track en el archivo GPX.");
-      return;
-    }
-
-    const elevations = [];
-    const distances = [];
-    let accumulatedDistance = 0;
-
-    trackPoints.forEach((point, index) => {
-      const lat = parseFloat(point.getAttribute("lat"));
-      const lon = parseFloat(point.getAttribute("lon"));
-      const ele = parseFloat(point.getElementsByTagName("ele")[0].textContent);
-
-      elevations.push(ele);
-
-      if (index > 0) {
-        const prevPoint = trackPoints[index - 1];
-        const prevLat = parseFloat(prevPoint.getAttribute("lat"));
-        const prevLon = parseFloat(prevPoint.getAttribute("lon"));
-
-        const distance = haversineDistance(prevLat, prevLon, lat, lon);
-        accumulatedDistance += distance;
+  function initMap(centerCoords) {
+    const map = new maplibregl.Map({
+      container: 'map',
+      zoom: 13,
+      center: centerCoords,
+      pitch: 60,
+      maxPitch: 85,
+      style: {
+        version: 8,
+        sources: {
+        satellite: {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 20,
+            attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
+            },
+          terrainSource: {
+            type: 'raster-dem',
+            tiles: [
+              'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+            ],
+            tileSize: 256,
+            maxzoom: 14,
+            encoding: 'terrarium' // IMPORTANTE para que interprete el Terrarium DEM
+          }
+        },
+        layers: [
+          {
+            id: 'satellite-layer',
+            type: 'raster',
+            source: 'satellite'
+          }
+        ],
+        terrain: {
+          source: 'terrainSource',
+          exaggeration: 1
+        }
       }
-
-      distances.push(accumulatedDistance / 1000); // en km
     });
-
-    drawElevationChart(distances, elevations);
-  };
-  reader.readAsText(file);
-});
-
-function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // Radio de la Tierra en metros
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const delta_phi = ((lat2 - lat1) * Math.PI) / 180;
-  const delta_lambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(delta_phi / 2) * Math.sin(delta_phi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(delta_lambda / 2) * Math.sin(delta_lambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // distancia en metros
-}
-
-function drawElevationChart(distances, elevations) {
-  d3.select("#chart").selectAll("*").remove();
-
-  const width = 800;
-  const height = 300;
-  const margin = { top: 20, right: 30, bottom: 30, left: 50 };
-
-  const xScale = d3
-    .scaleLinear()
-    .domain([distances[0], distances[distances.length - 1]])
-    .range([margin.left, width - margin.right]);
-
-  const yScale = d3
-    .scaleLinear()
-    .domain([d3.min(elevations), d3.max(elevations)])
-    .range([height - margin.bottom, margin.top]);
-
-  const svg = d3
-    .select("#chart")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-  svg
-    .append("path")
-    .datum(elevations)
-    .attr("fill", "steelblue")
-    .attr("fill-opacity", 0.3)
-    .attr("stroke", "steelblue")
-    .attr("stroke-width", 2)
-    .attr(
-      "d",
-      d3
-        .area()
-        .x((_, i) => xScale(distances[i]))
-        .y0(yScale(d3.min(elevations)))
-        .y1((d) => yScale(d))
+  
+    map.addControl(
+      new maplibregl.NavigationControl({
+        visualizePitch: true,
+        showZoom: true,
+        showCompass: true
+      })
     );
-
-  // Eje X (distancia en km)
-  svg
-    .append("g")
-    .attr("transform", `translate(0,${height - margin.bottom})`)
-    .call(
-      d3
-        .axisBottom(xScale)
-        .ticks(10)
-        .tickFormat((d) => `${d.toFixed(1)} km`)
+  
+    map.addControl(
+      new maplibregl.TerrainControl({
+        source: 'terrainSource',
+        exaggeration: 1
+      })
     );
-
-  // Eje Y (elevación en m)
-  svg
-    .append("g")
-    .attr("transform", `translate(${margin.left},0)`)
-    .call(d3.axisLeft(yScale).ticks(8).tickFormat((d) => `${d} m`));
-}
+  }
