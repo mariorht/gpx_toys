@@ -42,7 +42,7 @@ function initMap(centerCoords) {
       ],
       terrain: {
         source: 'terrainSource',
-        exaggeration: 1
+        exaggeration: 1.5
       }
     }
   });
@@ -51,7 +51,7 @@ function initMap(centerCoords) {
   map.addControl(
     new maplibregl.TerrainControl({
       source: 'terrainSource',
-      exaggeration: 1
+      exaggeration: 1.5
     })
   );
 
@@ -93,7 +93,7 @@ function initMap(centerCoords) {
         });
 
         drawTrack();
-        placeCyclistMarker(trackData[0].lat, trackData[0].lon);
+        drawCyclistPoint(trackData[0].lat, trackData[0].lon);
 
         const bounds = new maplibregl.LngLatBounds();
         trackData.forEach((p) => bounds.extend([p.lon, p.lat]));
@@ -101,7 +101,9 @@ function initMap(centerCoords) {
 
         document.getElementById('trackControls').style.display = 'block';
       };
+      
       reader.readAsText(file);
+
     }
   });
 
@@ -194,31 +196,104 @@ function drawTrack() {
   });
 }
 
-function placeCyclistMarker(lat, lon) {
-    if (!cyclistMarker) {
-      const markerEl = document.createElement('div');
-      markerEl.style.width = '16px';
-      markerEl.style.height = '16px';
-      markerEl.style.backgroundColor = 'orange';
-      markerEl.style.border = '2px solid black';
-      markerEl.style.borderRadius = '50%'; // Hace que sea círculo
-      markerEl.style.boxSizing = 'border-box'; // Para que el borde no aumente el tamaño
+function drawCyclistPoint(lon, lat) {
+    const cyclistSourceId = 'cyclist-point';
+    const cyclistLayerId = 'cyclist-point-layer';
   
-      cyclistMarker = new maplibregl.Marker({
-        element: markerEl
-      }).setLngLat([lon, lat]).addTo(map);
+    if (map.getSource(cyclistSourceId)) {
+      map.getSource(cyclistSourceId).setData({
+        type: 'Point',
+        coordinates: [lon, lat]
+      });
     } else {
-      cyclistMarker.setLngLat([lon, lat]);
+      map.addSource(cyclistSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Point',
+          coordinates: [lon, lat]
+        }
+      });
+  
+      map.addLayer({
+        id: cyclistLayerId,
+        type: 'circle',
+        source: cyclistSourceId,
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#FFA500', // Naranja
+          'circle-stroke-color': '#000000',
+          'circle-stroke-width': 2
+        }
+      });
     }
   }
   
+  
 
-function moveCyclist(progress) {
-  const i = Math.floor(progress * (trackData.length - 1));
-  placeCyclistMarker(trackData[i].lat, trackData[i].lon);
-}
+  function moveCyclist(progress) {
+    const index = Math.floor(progress * (trackData.length - 1));
+    const point = trackData[index];
+    drawCyclistPoint(point.lon, point.lat); // GeoJSON circle
+  }
+  
+  
 
 function getMinMax(property) {
   const values = trackData.map((p) => p[property]).filter((v) => !isNaN(v));
   return { min: Math.min(...values), max: Math.max(...values) };
 }
+
+
+
+
+document.getElementById('recordButton').addEventListener('click', recordTrackAnimation);
+
+
+function recordTrackAnimation() {
+    if (trackData.length < 2) {
+      console.error('No hay track cargado');
+      return;
+    }
+  
+    const canvas = map.getCanvas();
+    const stream = canvas.captureStream(30); // 30 FPS
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+  
+    const chunks = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'track_animation.webm';
+      a.click();
+    };
+  
+    let currentFrame = 0;
+    const totalFrames = 300; // Más frames para fluidez
+    const durationMs = 10000; // 10 segundos
+    const intervalMs = durationMs / totalFrames;
+  
+    recorder.start();
+  
+    function animateFrame() {
+      const progress = currentFrame / (totalFrames - 1);
+      moveCyclist(progress);
+  
+      // FORZAR REPAINT del mapa
+      map.triggerRepaint();
+  
+      currentFrame++;
+      if (currentFrame < totalFrames) {
+        setTimeout(animateFrame, intervalMs);
+      } else {
+        recorder.stop();
+      }
+    }
+  
+    animateFrame();
+  }
+  
