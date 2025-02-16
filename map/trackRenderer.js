@@ -125,7 +125,7 @@ export function moveCyclist(map, trackData, progress) {
   
       map.easeTo({
         center: [cameraOffset.lon, cameraOffset.lat],
-        zoom: 14,
+        zoom: 15,
         bearing: point.bearing,
         pitch: 50,
         duration: 100

@@ -47,9 +47,8 @@ Ajustar el valor de `crf` (0-51) según la calidad deseada (menor es mejor, pero
 
 
 ## Pendiente
-- Suavizar movimiento de cámara
 - Guardar directamente un mp4
-
+- A veces desaparece el cículo en la animación
 
 ## Tecnologías
 - MapLibre GL JS
