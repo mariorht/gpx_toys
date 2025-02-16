@@ -131,7 +131,7 @@ function initMap(centerCoords) {
     })
   );
 
-  function decimatePoints(points, minDistanceMeters = 10) {
+  function decimatePoints(points, minDistanceMeters = 5) {
     if (points.length < 2) return points;
   
     const decimated = [points[0]]; // Siempre mantenemos el primer punto
@@ -171,15 +171,15 @@ function initMap(centerCoords) {
           return { lat, lon, ele, time };
         });
         
-        // Decimar (por ejemplo, 20 metros entre puntos)
-        const decimatedPointsData = decimatePoints(pointsData, 20);
+        // Decimar (por ejemplo, 10 metros entre puntos)
+        const decimatedPointsData = decimatePoints(pointsData, 10);
 
         trackData = decimatedPointsData.map((point, index) => {
           let slope = 0;
           let speed = 0;
           let bearing = 0;
           if (index > 0) {
-            const prev = pointsData[index - 1];
+            const prev = decimatedPointsData[index - 1];
             const distance = haversineDistance(prev.lat, prev.lon, point.lat, point.lon);
             const elevationDiff = point.ele - prev.ele;
             slope = distance > 0 ? elevationDiff / distance : 0;
@@ -285,9 +285,46 @@ function drawTrack() {
   map.addSource('gpx-track', { type: 'geojson', data: { type: 'FeatureCollection', features: segments } });
 
   const { min, max } = getMinMax(mode);
-  const colorPaint = mode === 'fixed' || min === max
-    ? fixedColor
-    : ['interpolate', ['linear'], ['get', mode], min, '#00ff00', (min + max) / 2, '#ffff00', max, '#ff0000'];
+  let colorPaint;
+  
+  if (mode === 'fixed' || min === max) {
+    colorPaint = fixedColor;
+  } else if (mode === 'slope') {
+    colorPaint = [
+      'interpolate',
+      ['linear'],
+      ['get', 'slope'],
+      -0.15, '#0000ff', // Azul - Pendientes muy negativas
+      -0.10, '#0077ff', // Azul claro
+      -0.05, '#00ff00', // Verde bajada suave
+      -0.025, '#aaff00', // Verde lima
+      0, '#ffff00',     // Amarillo llano
+      0.025, '#ffaa00', // Naranja claro
+      0.05, '#ff7f00',  // Naranja subida ligera
+      0.10, '#ff0000',  // Rojo subida fuerte
+      0.15, '#990000'   // Rojo oscuro - Rampas muy fuertes
+    ];
+  } else if (mode === 'speed') {
+    colorPaint = [
+      'interpolate',
+      ['linear'],
+      ['get', 'speed'],
+      0, '#00ff00',       // 0 km/h (verde)
+      5.5, '#ffff00',     // 20 km/h (amarillo)
+      11.11, '#ff0000'    // 40 km/h (rojo)
+    ];
+  } else {
+    colorPaint = [
+      'interpolate',
+      ['linear'],
+      ['get', mode],
+      min, '#00ff00',
+      (min + max) / 2, '#ffff00',
+      max, '#ff0000'
+    ];
+  }
+  
+  
 
   map.addLayer({
     id: 'gpx-track-line',
@@ -429,10 +466,18 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 
     
 
-function getMinMax(property) {
-  const values = trackData.map((p) => p[property]).filter((v) => !isNaN(v));
-  return { min: Math.min(...values), max: Math.max(...values) };
-}
+  function getMinMax(property) {
+    const source = map.getSource('gpx-track');
+    if (!source || !source._data) return { min: NaN, max: NaN };
+  
+    const features = source._data.features;
+    const values = features.map(f => f.properties[property]).filter(v => !isNaN(v));
+  
+    if (values.length === 0) return { min: NaN, max: NaN };
+  
+    return { min: Math.min(...values), max: Math.max(...values) };
+  }
+  
 
 
 
