@@ -481,10 +481,11 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 
 
 
-document.getElementById('recordButton').addEventListener('click', () => {
-  isRecordingVideo = true; // Para saber que es vídeo
-  document.getElementById('resolutionModal').style.display = 'flex';
-});
+  document.getElementById('recordButton').addEventListener('click', () => {
+    isRecordingVideo = true;
+    document.getElementById('videoDurationContainer').style.display = 'block'; // Mostrar duración
+    document.getElementById('resolutionModal').style.display = 'flex';
+  });
 
 
 document.querySelectorAll('.resolutionOption').forEach(button => {
@@ -526,6 +527,9 @@ document.getElementById('confirmCustomResolution').addEventListener('click', () 
   }
 });
 
+document.getElementById('cancelResolutionModal').addEventListener('click', () => {
+  document.getElementById('resolutionModal').style.display = 'none';
+});
 
 
 function recordTrackAnimation() {
@@ -638,7 +642,8 @@ function recordTrackAnimation() {
   
 
 document.getElementById('exportImageButton').addEventListener('click', () => {
-  isRecordingVideo = false; // Para saber que es imagen
+  isRecordingVideo = false;
+  document.getElementById('videoDurationContainer').style.display = 'none'; // Ocultar duración
   document.getElementById('resolutionModal').style.display = 'flex';
 });
 
