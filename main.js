@@ -5,6 +5,7 @@ let cyclistMarker;
 let selectedResolution = { width: 1280, height: 720 };
 let isRecordingVideo = false;
 
+let gpxFileName = 'track'; // Valor por defecto
 
 initMap([-5.904324, 43.544351]); // Avilés
 
@@ -155,6 +156,8 @@ function initMap(centerCoords) {
   document.getElementById('gpxFileInput').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
+      gpxFileName = file.name.replace(/\.[^/.]+$/, ''); // Guarda el nombre sin extensión
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const gpxText = e.target.result;
@@ -532,6 +535,12 @@ document.getElementById('cancelResolutionModal').addEventListener('click', () =>
 });
 
 
+function getTimestamp() {
+  const now = new Date();
+  return now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
+}
+
+
 function recordTrackAnimation() {
   if (trackData.length < 2) {
     console.error('No hay track cargado');
@@ -577,7 +586,7 @@ function recordTrackAnimation() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'track_animation.webm';
+    a.download = `${gpxFileName}_${getTimestamp()}.webm`;
     a.click();
     cleanup();
   };
@@ -691,7 +700,7 @@ function exportMapImage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'map_capture.png';
+        a.download = `${gpxFileName}_${getTimestamp()}.png`;
         a.click();
         cleanup();
       }, 'image/png');
