@@ -32,18 +32,23 @@
       </div>
     </div>
 
-    <!-- Modal Resolución -->
-    <div id="resolutionModal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <h3>Selecciona la resolución</h3>
-        <button class="resolutionOption" data-width="1920" data-height="1080">1920x1080 (Full HD)</button>
-        <button class="resolutionOption" data-width="1280" data-height="720">1280x720 (HD)</button>
-        <button class="resolutionOption" data-width="854" data-height="480">854x480 (SD)</button>
+    <!-- Modal para seleccionar resolución -->
+    <div id="resolutionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 9999;">
+      <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center;">
+        <h3>Selecciona una resolución:</h3>
+        <button class="resolutionOption" data-width="1280" data-height="720">HD (1280x720)</button>
+        <button class="resolutionOption" data-width="1920" data-height="1080">Full HD (1920x1080)</button>
+        <button class="resolutionOption" data-width="3840" data-height="2160">4K (3840x2160)</button>
+        <hr>
+        <button class="resolutionOption" data-width="720" data-height="1280">HD Vertical (720x1280)</button>
+        <button class="resolutionOption" data-width="1080" data-height="1920">Full HD Vertical (1080x1920)</button>
+        <button class="resolutionOption" data-width="2160" data-height="3840">4K Vertical (2160x3840)</button>
+        <hr>
         <button id="customResolutionBtn">Personalizada</button>
-        <div id="customResolutionInputs" style="display:none;">
-          <label>Ancho:</label> <input type="number" id="customWidth" value="1280" />
-          <label>Alto:</label> <input type="number" id="customHeight" value="720" />
-          <button id="confirmCustomResolution">Aceptar</button>
+        <div id="customResolutionInputs" style="display:none; margin-top: 10px;">
+          <input type="number" id="customWidth" placeholder="Ancho" />
+          <input type="number" id="customHeight" placeholder="Alto" />
+          <button id="confirmCustomResolution">Confirmar</button>
         </div>
       </div>
     </div>

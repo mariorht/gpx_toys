@@ -251,7 +251,7 @@ function moveCyclist(progress) {
       center: [cameraOffset.lon, cameraOffset.lat],
       zoom: 15,
       bearing: point.bearing,
-      pitch: 70,
+      pitch: 60,
       duration: 100
     });
   }
