@@ -373,88 +373,107 @@ document.getElementById('confirmCustomResolution').addEventListener('click', () 
 
 
 function recordTrackAnimation() {
-    if (trackData.length < 2) {
-      console.error('No hay track cargado');
+  if (trackData.length < 2) {
+    console.error('No hay track cargado');
+    return;
+  }
+
+  let FPS = 30;
+  const originalWidth = map._container.clientWidth;
+  const originalHeight = map._container.clientHeight;
+  const originalPosition = map._container.style.position;
+  const originalTop = map._container.style.top;
+  const originalLeft = map._container.style.left;
+
+  // Redimensionar y centrar el canvas del mapa
+  map._container.style.width = `${selectedResolution.width}px`;
+  map._container.style.height = `${selectedResolution.height}px`;
+  map._container.style.position = 'fixed';
+  map._container.style.top = '50%';
+  map._container.style.left = '50%';
+  map._container.style.transform = 'translate(-50%, -50%)';
+  map.resize();
+
+  const canvas = map.getCanvas();
+
+  const stream = canvas.captureStream(FPS);
+  const options = {
+    mimeType: 'video/webm;codecs=vp9',
+    videoBitsPerSecond: 10 * 1024 * 1024 // 10 Mbps
+  };
+
+  const recorder = new MediaRecorder(stream, options);
+
+  const chunks = [];
+  recorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
+  };
+
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'track_animation.webm';
+    a.click();
+    cleanup();
+  };
+
+  let currentFrame = 0;
+  const durationMs = 60000; // 60 segundos
+  const totalFrames = FPS * durationMs / 1000;
+  const intervalMs = durationMs / totalFrames;
+
+  const recordingModal = document.getElementById('recordingModal');
+  const recordingProgressBar = document.getElementById('recordingProgressBar');
+  const cancelRecordingButton = document.getElementById('cancelRecordingButton');
+
+  recordingModal.style.display = 'flex';
+  recordingProgressBar.value = 0;
+
+  let cancelRequested = false;
+
+  function cancelRecording() {
+    cancelRequested = true;
+    recorder.stop();
+  }
+
+  cancelRecordingButton.onclick = cancelRecording;
+
+  recorder.start();
+
+  function animateFrame() {
+    if (cancelRequested) {
+      cleanup();
       return;
     }
-  
-    let FPS = 20;
-    const canvas = map.getCanvas();
 
-    // Guardar tamaño original del mapa
-    const originalWidth = map._container.clientWidth;
-    const originalHeight = map._container.clientHeight;
+    const progress = currentFrame / (totalFrames - 1);
+    moveCyclist(progress);
 
-    // Redimensionar el mapa a la resolución seleccionada
-    map._container.style.width = `${selectedResolution.width}px`;
-    map._container.style.height = `${selectedResolution.height}px`;
-    map.resize();
+    map.triggerRepaint();
 
+    currentFrame++;
+    recordingProgressBar.value = (currentFrame / totalFrames) * 100;
 
-  // Esperar un pequeño tiempo para que el mapa termine de redibujar
-  setTimeout(() => {
-    const FPS = 30;
-    const stream = map.getCanvas().captureStream(FPS);
-
-    const options = {
-      mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 10 * 1024 * 1024, // 10 Mbps
-    };
-
-    const recorder = new MediaRecorder(stream, options);
-    const chunks = [];
-
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'track_animation.webm';
-      a.click();
-
-      // Restaurar tamaño original
-      map._container.style.width = `${originalWidth}px`;
-      map._container.style.height = `${originalHeight}px`;
-      map.resize();
-
-      // Ocultar barra de progreso
-      recordingProgressContainer.style.display = 'none';
-    };
-
-    let currentFrame = 0;
-    const durationMs = 60000; // 60 segundos
-    const totalFrames = FPS * (durationMs / 1000);
-    const intervalMs = durationMs / totalFrames;
-
-    const recordingProgressContainer = document.getElementById('recordingProgressContainer');
-    const recordingProgressBar = document.getElementById('recordingProgressBar');
-
-    recordingProgressContainer.style.display = 'block';
-
-    recorder.start();
-
-    function animateFrame() {
-      const progress = currentFrame / (totalFrames - 1);
-      moveCyclist(progress);
-
-      map.triggerRepaint();
-
-      currentFrame++;
-      recordingProgressBar.value = (currentFrame / totalFrames) * 100;
-
-      if (currentFrame < totalFrames) {
-        setTimeout(animateFrame, intervalMs);
-      } else {
-        recorder.stop();
-      }
+    if (currentFrame < totalFrames) {
+      setTimeout(animateFrame, intervalMs);
+    } else {
+      recorder.stop();
     }
+  }
 
-    animateFrame();
-  }, 500); // Espera 500 ms tras redimensionar
+  function cleanup() {
+    recordingModal.style.display = 'none';
+    map._container.style.width = `${originalWidth}px`;
+    map._container.style.height = `${originalHeight}px`;
+    map._container.style.position = originalPosition;
+    map._container.style.top = originalTop;
+    map._container.style.left = originalLeft;
+    map._container.style.transform = 'none';
+    map.resize();
+  }
+
+  animateFrame();
 }
-  
   

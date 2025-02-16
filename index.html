@@ -29,10 +29,6 @@
 
         <button id="recordButton">Grabar Animación</button>
 
-        <div id="recordingProgressContainer" style="display:none; margin-top: 10px;">
-            <label for="recordingProgressBar">Progreso de grabación:</label>
-            <progress id="recordingProgressBar" value="0" max="100" style="width: 300px;"></progress>
-          </div>
       </div>
     </div>
 
@@ -49,6 +45,14 @@
           <label>Alto:</label> <input type="number" id="customHeight" value="720" />
           <button id="confirmCustomResolution">Aceptar</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal para grabación -->
+    <div id="recordingModal">
+      <div>
+        <progress id="recordingProgressBar" max="100" value="0"></progress>
+        <button id="cancelRecordingButton">Cancelar</button>
       </div>
     </div>
 
