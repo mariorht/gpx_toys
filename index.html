@@ -36,6 +36,21 @@
       </div>
     </div>
 
+    <!-- Modal Resolución -->
+    <div id="resolutionModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h3>Selecciona la resolución</h3>
+        <button class="resolutionOption" data-width="1920" data-height="1080">1920x1080 (Full HD)</button>
+        <button class="resolutionOption" data-width="1280" data-height="720">1280x720 (HD)</button>
+        <button class="resolutionOption" data-width="854" data-height="480">854x480 (SD)</button>
+        <button id="customResolutionBtn">Personalizada</button>
+        <div id="customResolutionInputs" style="display:none;">
+          <label>Ancho:</label> <input type="number" id="customWidth" value="1280" />
+          <label>Alto:</label> <input type="number" id="customHeight" value="720" />
+          <button id="confirmCustomResolution">Aceptar</button>
+        </div>
+      </div>
+    </div>
 
 
     <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>

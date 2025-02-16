@@ -2,6 +2,8 @@ let map;
 let trackData = [];
 let cyclistMarker;
 
+let selectedResolution = { width: 1280, height: 720 };
+
 initMap([-5.904324, 43.544351]); // Avilés
 
 function initMap(centerCoords) {
@@ -338,7 +340,36 @@ function getMinMax(property) {
 
 
 
-document.getElementById('recordButton').addEventListener('click', recordTrackAnimation);
+document.getElementById('recordButton').addEventListener('click', () => {
+  document.getElementById('resolutionModal').style.display = 'flex';
+});
+
+document.querySelectorAll('.resolutionOption').forEach(button => {
+  button.addEventListener('click', () => {
+    selectedResolution.width = parseInt(button.dataset.width);
+    selectedResolution.height = parseInt(button.dataset.height);
+    document.getElementById('resolutionModal').style.display = 'none';
+    recordTrackAnimation();
+  });
+});
+
+document.getElementById('customResolutionBtn').addEventListener('click', () => {
+  document.getElementById('customResolutionInputs').style.display = 'block';
+});
+
+document.getElementById('confirmCustomResolution').addEventListener('click', () => {
+  const customWidth = parseInt(document.getElementById('customWidth').value);
+  const customHeight = parseInt(document.getElementById('customHeight').value);
+
+  if (customWidth > 0 && customHeight > 0) {
+    selectedResolution.width = customWidth;
+    selectedResolution.height = customHeight;
+    document.getElementById('resolutionModal').style.display = 'none';
+    recordTrackAnimation();
+  } else {
+    alert('Introduce una resolución válida');
+  }
+});
 
 
 function recordTrackAnimation() {
@@ -349,16 +380,30 @@ function recordTrackAnimation() {
   
     let FPS = 20;
     const canvas = map.getCanvas();
-    const stream = canvas.captureStream(FPS);
+
+    // Guardar tamaño original del mapa
+    const originalWidth = map._container.clientWidth;
+    const originalHeight = map._container.clientHeight;
+
+    // Redimensionar el mapa a la resolución seleccionada
+    map._container.style.width = `${selectedResolution.width}px`;
+    map._container.style.height = `${selectedResolution.height}px`;
+    map.resize();
+
+
+  // Esperar un pequeño tiempo para que el mapa termine de redibujar
+  setTimeout(() => {
+    const FPS = 30;
+    const stream = map.getCanvas().captureStream(FPS);
 
     const options = {
-        mimeType: 'video/webm;codecs=vp9',
-        videoBitsPerSecond: 10 * 1024 * 1024 // 50 Mbps
-      };
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 10 * 1024 * 1024, // 10 Mbps
+    };
 
     const recorder = new MediaRecorder(stream, options);
-  
     const chunks = [];
+
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
@@ -370,41 +415,46 @@ function recordTrackAnimation() {
       a.href = url;
       a.download = 'track_animation.webm';
       a.click();
-      progressBar.style.display = 'none'; // Ocultar la barra tras finalizar
+
+      // Restaurar tamaño original
+      map._container.style.width = `${originalWidth}px`;
+      map._container.style.height = `${originalHeight}px`;
+      map.resize();
+
+      // Ocultar barra de progreso
+      recordingProgressContainer.style.display = 'none';
     };
-  
+
     let currentFrame = 0;
     const durationMs = 60000; // 60 segundos
-    const totalFrames = FPS * durationMs/1000; // Más frames para fluidez
+    const totalFrames = FPS * (durationMs / 1000);
     const intervalMs = durationMs / totalFrames;
-  
 
     const recordingProgressContainer = document.getElementById('recordingProgressContainer');
     const recordingProgressBar = document.getElementById('recordingProgressBar');
-    
+
     recordingProgressContainer.style.display = 'block';
-  
+
     recorder.start();
-  
+
     function animateFrame() {
       const progress = currentFrame / (totalFrames - 1);
       moveCyclist(progress);
-  
-      // FORZAR REPAINT del mapa
+
       map.triggerRepaint();
-  
+
       currentFrame++;
       recordingProgressBar.value = (currentFrame / totalFrames) * 100;
-  
+
       if (currentFrame < totalFrames) {
         setTimeout(animateFrame, intervalMs);
       } else {
         recorder.stop();
-        recordingProgressContainer.style.display = 'none'; // Ocultar la barra al finalizar
       }
     }
-  
+
     animateFrame();
-  }
+  }, 500); // Espera 500 ms tras redimensionar
+}
   
   
