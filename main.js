@@ -6,6 +6,7 @@ let selectedResolution = { width: 1280, height: 720 };
 
 initMap([-5.904324, 43.544351]); // Avilés
 
+
 function initMap(centerCoords) {
   map = new maplibregl.Map({
     container: 'map',
@@ -24,6 +25,24 @@ function initMap(centerCoords) {
           tileSize: 256,
           maxzoom: 20,
           attribution: '&copy; Esri & contributors'
+        },
+        roads: {
+          type: 'raster',
+          tiles: [
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        },
+        relief: {
+          type: 'raster',
+          tiles: [
+            'https://tiles.stadiamaps.com/tiles/stamen-terrain/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          maxzoom: 18,
+          attribution: '&copy; Stadia Maps &copy; OpenStreetMap contributors'
         },
         terrainSource: {
           type: 'raster-dem',
@@ -49,6 +68,59 @@ function initMap(centerCoords) {
     }
   });
 
+  class MapLayerControl {
+    onAdd(map) {
+      this._map = map;
+      this._container = document.createElement('div');
+      this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+      this._container.innerHTML = `
+        <select id="mapLayerSelect" class="maplibregl-ctrl-select">
+          <option value="satellite">Satélite</option>
+          <option value="roads">Carreteras</option>
+          <option value="relief">Relieve</option>
+        </select>
+      `;
+      this._container
+        .querySelector('select')
+        .addEventListener('change', this._onChange.bind(this));
+      return this._container;
+    }
+  
+    onRemove() {
+      this._container.parentNode.removeChild(this._container);
+      this._map = undefined;
+    }
+  
+    _onChange(event) {
+      const selectedLayer = event.target.value;
+      this._map.setStyle({
+        version: 8,
+        sources: this._map.getStyle().sources,
+        layers: [
+          {
+            id: 'base-layer',
+            type: 'raster',
+            source: selectedLayer
+          }
+        ],
+        terrain: {
+          source: 'terrainSource',
+          exaggeration: 1.5
+        }
+      });
+  
+      // Redibujar track y ciclista tras cambiar el estilo
+      this._map.once('styledata', () => {
+        drawTrack();
+        if (trackData.length > 0) {
+          const { lon, lat } = trackData[0];
+          drawCyclistPoint(lon, lat);
+        }
+      });
+    }
+  }
+
+  map.addControl(new MapLayerControl(), 'top-right');
   map.addControl(new maplibregl.NavigationControl());
   map.addControl(
     new maplibregl.TerrainControl({
@@ -56,6 +128,7 @@ function initMap(centerCoords) {
       exaggeration: 1.5
     })
   );
+
 
   // Subir GPX
   document.getElementById('gpxFileInput').addEventListener('change', (event) => {
