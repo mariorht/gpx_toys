@@ -535,6 +535,9 @@ function recordTrackAnimation() {
   }
 
   let FPS = 30;
+  const videoDuration = parseInt(document.getElementById('videoDuration').value) || 60;
+
+
   const originalWidth = map._container.clientWidth;
   const originalHeight = map._container.clientHeight;
   const originalPosition = map._container.style.position;
@@ -576,7 +579,7 @@ function recordTrackAnimation() {
   };
 
   let currentFrame = 0;
-  const durationMs = 60000; // 60 segundos
+  const durationMs = videoDuration * 1000; // Duración personalizada
   const totalFrames = FPS * durationMs / 1000;
   const intervalMs = durationMs / totalFrames;
 
