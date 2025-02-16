@@ -1,6 +1,10 @@
 import { drawTrack, drawCyclistPoint } from './trackRenderer.js';
 
 export class MapLayerControl {
+    constructor(getTrackData) {
+      this.getTrackData = getTrackData;
+    }
+
     onAdd(map) {
       this._map = map;
       this._container = document.createElement('div');
@@ -43,10 +47,11 @@ export class MapLayerControl {
   
       // Redibujar track y ciclista tras cambiar el estilo
       this._map.once('styledata', () => {
-        drawTrack();
+        const trackData = this.getTrackData();
         if (trackData.length > 0) {
+          drawTrack(this._map, trackData);
           const { lon, lat } = trackData[0];
-          drawCyclistPoint(lon, lat);
+          drawCyclistPoint(this._map, lon, lat);
         }
       });
     }

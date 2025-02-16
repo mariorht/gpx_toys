@@ -14,7 +14,6 @@ export function drawTrack(map, trackData) {
     }));
   
     if (map.getSource('gpx-track')) {
-      map.removeLayer('gpx-track-line');
       map.removeSource('gpx-track');
     }
   
@@ -26,7 +25,6 @@ export function drawTrack(map, trackData) {
       const propertyValues = segments.map(s => s.properties[mode]);
       ({ min, max } = getMinMax(propertyValues));
     }
-    console.log(`Min ${mode}: ${min}, Max ${mode}: ${max}`);
     
     let colorPaint;
     

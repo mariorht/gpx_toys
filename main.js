@@ -2,6 +2,7 @@ import { initMap } from './map/mapInitializer.js';
 import { setupGPXFileInput } from './utils/gpxParser.js';
 import { setupExportButtons } from './utils/mediaExport.js';
 import { drawTrack, moveCyclist } from './map/trackRenderer.js';
+import { MapLayerControl } from './map/mapLayerControl.js';
 
 let map;
 let trackData = [];
@@ -19,10 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
   setupGPXFileInput(map, (data, loadedFileName) => {
     trackData = data;
     fileName = loadedFileName;
-    console.log(`Track cargado con ${trackData.length} puntos desde ${fileName}`);
     document.getElementById('trackControls').style.display = 'block';
   });
 
+  map.addControl(new MapLayerControl(() => trackData), 'top-right');
+  map.addControl(new maplibregl.NavigationControl());
+  map.addControl(
+    new maplibregl.TerrainControl({
+      source: 'terrainSource',
+      exaggeration: 1.5
+    })
+  );
 
   setupExportButtons(map, () => trackData, () => fileName, () => selectedResolution);
 

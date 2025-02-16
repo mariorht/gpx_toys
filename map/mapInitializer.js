@@ -62,15 +62,6 @@ export function initMap(centerCoords) {
     });
   
 
-    map.addControl(new MapLayerControl(), 'top-right');
-    map.addControl(new maplibregl.NavigationControl());
-    map.addControl(
-      new maplibregl.TerrainControl({
-        source: 'terrainSource',
-        exaggeration: 1.5
-      })
-    );
-
     return map;
   }
   
