@@ -13,6 +13,9 @@ export function drawTrack(map, trackData) {
       properties: { slope: p.slope, elevation: p.ele, speed: p.speed }
     }));
   
+    if (map.getLayer('gpx-track-line')) {
+      map.removeLayer('gpx-track-line');
+    }
     if (map.getSource('gpx-track')) {
       map.removeSource('gpx-track');
     }
