@@ -3,6 +3,8 @@ let trackData = [];
 let cyclistMarker;
 
 let selectedResolution = { width: 1280, height: 720 };
+let isRecordingVideo = false;
+
 
 initMap([-5.904324, 43.544351]); // Avilés
 
@@ -412,23 +414,31 @@ function getMinMax(property) {
 
 
 
-
 document.getElementById('recordButton').addEventListener('click', () => {
+  isRecordingVideo = true; // Para saber que es vídeo
   document.getElementById('resolutionModal').style.display = 'flex';
 });
+
 
 document.querySelectorAll('.resolutionOption').forEach(button => {
   button.addEventListener('click', () => {
     selectedResolution.width = parseInt(button.dataset.width);
     selectedResolution.height = parseInt(button.dataset.height);
     document.getElementById('resolutionModal').style.display = 'none';
-    recordTrackAnimation();
+
+    if (isRecordingVideo) {
+      recordTrackAnimation();
+    } else {
+      exportMapImage();
+    }
   });
 });
+
 
 document.getElementById('customResolutionBtn').addEventListener('click', () => {
   document.getElementById('customResolutionInputs').style.display = 'block';
 });
+
 
 document.getElementById('confirmCustomResolution').addEventListener('click', () => {
   const customWidth = parseInt(document.getElementById('customWidth').value);
@@ -438,11 +448,17 @@ document.getElementById('confirmCustomResolution').addEventListener('click', () 
     selectedResolution.width = customWidth;
     selectedResolution.height = customHeight;
     document.getElementById('resolutionModal').style.display = 'none';
-    recordTrackAnimation();
+
+    if (isRecordingVideo) {
+      recordTrackAnimation();
+    } else {
+      exportMapImage();
+    }
   } else {
     alert('Introduce una resolución válida');
   }
 });
+
 
 
 function recordTrackAnimation() {
@@ -550,3 +566,74 @@ function recordTrackAnimation() {
   animateFrame();
 }
   
+
+document.getElementById('exportImageButton').addEventListener('click', () => {
+  isRecordingVideo = false; // Para saber que es imagen
+  document.getElementById('resolutionModal').style.display = 'flex';
+});
+
+
+function exportMapImage() {
+  if (trackData.length < 2) {
+    console.error('No hay track cargado');
+    return;
+  }
+
+  const originalWidth = map._container.clientWidth;
+  const originalHeight = map._container.clientHeight;
+  const originalPosition = map._container.style.position;
+  const originalTop = map._container.style.top;
+  const originalLeft = map._container.style.left;
+
+  // Redimensionar y centrar el canvas del mapa
+  map._container.style.width = `${selectedResolution.width}px`;
+  map._container.style.height = `${selectedResolution.height}px`;
+  map._container.style.position = 'fixed';
+  map._container.style.top = '50%';
+  map._container.style.left = '50%';
+  map._container.style.transform = 'translate(-50%, -50%)';
+  map.resize();
+
+  // Centrar el mapa en el track tras el resize
+  const bounds = new maplibregl.LngLatBounds();
+  trackData.forEach((p) => bounds.extend([p.lon, p.lat]));
+  map.fitBounds(bounds, { padding: 50, animate: false });
+  
+
+  const recordingModal = document.getElementById('recordingModal');
+  const recordingProgressBar = document.getElementById('recordingProgressBar');
+  const cancelRecordingButton = document.getElementById('cancelRecordingButton');
+
+  recordingModal.style.display = 'flex';
+  recordingProgressBar.value = 0;
+  cancelRecordingButton.style.display = 'none'; // Ocultamos el cancelar en foto
+
+  // Esperar a que el mapa termine de redibujar tras el resize
+  map.once('idle', () => {
+    try {
+      const canvas = map.getCanvas();
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'map_capture.png';
+        a.click();
+        cleanup();
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error al exportar imagen:', error);
+      cleanup();
+    }
+  });
+
+  function cleanup() {
+    recordingModal.style.display = 'none';
+    map._container.style.width = `${originalWidth}px`;
+    map._container.style.height = `${originalHeight}px`;
+    map._container.style.position = originalPosition;
+    map._container.style.top = originalTop;
+    map._container.style.left = originalLeft;
+    map._container.style.transform = 'none';
+    map.resize();
+  }
+}
