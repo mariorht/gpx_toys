@@ -131,6 +131,25 @@ function initMap(centerCoords) {
     })
   );
 
+  function decimatePoints(points, minDistanceMeters = 10) {
+    if (points.length < 2) return points;
+  
+    const decimated = [points[0]]; // Siempre mantenemos el primer punto
+  
+    for (let i = 1; i < points.length; i++) {
+      const prev = decimated[decimated.length - 1];
+      const curr = points[i];
+  
+      const distance = haversineDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+      if (distance >= minDistanceMeters) {
+        decimated.push(curr);
+      }
+    }
+  
+    return decimated;
+  }
+  
+
 
   // Subir GPX
   document.getElementById('gpxFileInput').addEventListener('change', (event) => {
@@ -151,8 +170,11 @@ function initMap(centerCoords) {
           const time = timeNode ? new Date(timeNode.textContent).getTime() : null;
           return { lat, lon, ele, time };
         });
+        
+        // Decimar (por ejemplo, 20 metros entre puntos)
+        const decimatedPointsData = decimatePoints(pointsData, 20);
 
-        trackData = pointsData.map((point, index) => {
+        trackData = decimatedPointsData.map((point, index) => {
           let slope = 0;
           let speed = 0;
           let bearing = 0;

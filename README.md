@@ -49,6 +49,7 @@ Ajustar el valor de `crf` (0-51) según la calidad deseada (menor es mejor, pero
 ## Pendiente
 - Suavizar movimiento de cámara
 - Guardar directamente un mp4
+- Resolver problemas con el cáculo de pendiente, velocidad y altitud
 
 
 ## Tecnologías
