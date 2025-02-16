@@ -41,7 +41,7 @@ function initMap(centerCoords) {
         relief: {
           type: 'raster',
           tiles: [
-            'https://tiles.stadiamaps.com/tiles/stamen-terrain/{z}/{x}/{y}.png'
+            'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
           ],
           tileSize: 256,
           maxzoom: 18,
