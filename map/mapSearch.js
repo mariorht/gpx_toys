@@ -9,7 +9,7 @@ export function setupSearchBox(map) {
       if (query.length === 0) return;
   
       // 🔎 Hacer la búsqueda en Photon (Komoot)
-      const response = await fetch(`https://photon.komoot.io/api/?q=${query}&limit=5`);
+      const response = await fetch(`https://photon.komoot.io/api/?q=${query}&limit=10`);
       const data = await response.json();
   
       // 🛑 Si no hay resultados, mostrar mensaje
