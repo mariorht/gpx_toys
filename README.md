@@ -14,15 +14,7 @@ Este proyecto permite visualizar y animar tracks GPX en un mapa 3D utilizando Ma
   - Color fijo
 - Animación del recorrido con seguimiento de la cámara y suavizado de movimientos.
 - Exportación de la animación como vídeo MP4 de alta calidad.
-
-## Requisitos
-- Navegador moderno con soporte para WebM y MediaRecorder.
-- MapLibre GL JS (se carga desde CDN).
-
-## Archivos
-- `index.html`: Contiene la estructura HTML con los controles y el mapa.
-- `main.js`: Implementa la lógica de carga del GPX, visualización, animación y grabación del vídeo.
-- `style.css`: Estilos básicos para el mapa y los controles.
+- **Búsqueda de ubicaciones con Photon (Komoot)**: Permite buscar lugares y mover el mapa automáticamente a la ubicación seleccionada.
 
 
 ## Uso
@@ -32,26 +24,18 @@ Este proyecto permite visualizar y animar tracks GPX en un mapa 3D utilizando Ma
 4. Usar los controles de animación:
    - `Play/Pause` para iniciar/detener la animación.
    - Barra de progreso para avanzar manualmente.
-5. Grabar la animación:
+5. Buscar ubicaciones:
+   - Escribir en la barra de búsqueda y presionar `Enter` o el ícono de la lupa.
+   - Seleccionar un resultado para mover el mapa automáticamente.
+6. Grabar la animación:
    - Presionar `Grabar Animación` para iniciar la grabación del vídeo.
    - El vídeo se descargará automáticamente al finalizar.
 
-## Exportar MP4
-El vídeo se guarda en formato `webm`. Para convertirlo a MP4:
-
-```bash
-ffmpeg -r 30 -i track_animation.webm -vf "scale=-1:720" -c:v libx264 -preset slow -crf 26 -pix_fmt yuv420p track_animation_720p.mp4
-```
-
-Ajustar el valor de `crf` (0-51) según la calidad deseada (menor es mejor, pero mayor tamaño de archivo).
-
 
 ## Pendiente
-- Guardar directamente un mp4
-- A veces desaparece el cículo en la animación
+- A veces desaparece el círculo en la animación.
 
 ## Tecnologías
-- MapLibre GL JS
-- MediaRecorder API
-- FFmpeg (opcional, para conversión a MP4)
+- [MapLibre GL JS](https://maplibre.org/)
+- [Photon (Komoot) para búsqueda de ubicaciones](https://photon.komoot.io/)
 

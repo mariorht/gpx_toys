@@ -3,6 +3,7 @@ import { setupGPXFileInput } from './utils/gpxParser.js';
 import { setupExportButtons } from './utils/mediaExport.js';
 import { drawTrack, moveCyclist } from './map/trackRenderer.js';
 import { MapLayerControl } from './map/mapLayerControl.js';
+import { setupSearchBox } from './map/mapSearch.js';
 
 let map;
 let trackData = [];
@@ -13,9 +14,12 @@ let isPlaying = false;
 
 let selectedResolution = { width: 1280, height: 720 };
 
+
 document.addEventListener('DOMContentLoaded', () => {
   const initialCoords = [-5.904324, 43.544351];
   map = initMap(initialCoords);
+
+  setupSearchBox(map); // 🔎 Activar la búsqueda con Photon
 
   setupGPXFileInput(map, (data, loadedFileName) => {
     trackData = data;
