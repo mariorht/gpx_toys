@@ -6,8 +6,21 @@
     <title>Mapa con Relieve 3D - MapLibre GL JS</title>
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="style.css" />
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+      function initClient() {
+        gapi.load("auth2", function () {
+          gapi.auth2.init({
+            client_id: "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com",
+          });
+        });
+      }
+    </script>
+
+
   </head>
-  <body>
+  <body onload="initClient()">
     <div id="map"></div>
 
     <div id="controls">
@@ -79,6 +92,9 @@
     
       <!-- 💾 Botón de guardar vídeo (oculto al inicio) -->
       <button id="saveVideoButton" style="display: none;">💾 Guardar vídeo</button>
+
+      <!-- 📤 Botón para subir a YouTube -->
+      <button id="uploadYouTubeButton" style="display: none;">📤 Subir a YouTube</button>
     
       <!-- ❌ Botón de cerrar modal después de generar vídeo -->
       <button id="closeModalButton" style="display: none;">❌ Cerrar</button>
