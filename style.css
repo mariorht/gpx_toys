@@ -122,6 +122,7 @@ body, html {
     margin-bottom: 10px;
   }
   
+  #cancelRecordingButton,
   #resolutionModal .resolutionOption,
   #resolutionModal #customResolutionBtn,
   #resolutionModal #confirmCustomResolution,

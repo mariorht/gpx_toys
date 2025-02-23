@@ -202,19 +202,19 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
         const recordingModal = document.getElementById('recordingModal');
         const recordingProgressBar = document.getElementById('recordingProgressBar');
         const cancelRecordingButton = document.getElementById('cancelRecordingButton');
-      
-        recordingModal.style.display = 'flex';
+            
+        recordingModal.style.display = "flex";
         recordingProgressBar.value = 0;
-      
+        cancelRecordingButton.style.display = "block";
+
+        // 🎯 Evento de cancelar
         let cancelRequested = false;
-      
-        function cancelRecording() {
+        cancelRecordingButton.onclick = () => {
           cancelRequested = true;
-          recorder.stop();
-        }
-      
-        cancelRecordingButton.onclick = cancelRecording;
-      
+          recorder.stop(); // ⚠ Detener la grabación
+          cleanup(); // Limpiar estado
+        };
+          
         recorder.start();
       
         function animateFrame() {
