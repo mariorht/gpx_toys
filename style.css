@@ -44,27 +44,6 @@ body, html {
   }
 
 
-
-  #recordingModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-  
-  #recordingModal > div {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    width: 400px; /* Más ancho */
-  }
   
   #recordingProgressBar {
     width: 100%;
@@ -261,4 +240,66 @@ body, html {
 .search-meta {
   font-size: 12px;
   color: gray;
+}
+
+
+#saveVideoButton {
+  display: none; /* Se oculta hasta que se genera el vídeo */
+  margin-top: 10px;
+  width: 100%;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+#saveVideoButton:hover {
+  background-color: #0056b3;
+}
+
+
+#recordingModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 1000;
+  color: black;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90vw; /* 🔄 Permitir que el modal sea más ancho */
+  max-height: 90vh; /* 🔄 Evitar que salga de la pantalla */
+  overflow: auto; /* 🔄 Añadir scroll si el vídeo es muy grande */
+}
+
+/* 📹 Ajustar el tamaño del reproductor de vídeo */
+#videoPreview {
+  display: none;
+  width: 100%;
+  height: auto;
+  max-height: 80vh; /* 🔄 Ajustar la altura según la pantalla */
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+
+#recordingStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#saveVideoButton, #closeModalButton {
+  width: 100%;
+  margin-top: 10px;
 }

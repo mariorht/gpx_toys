@@ -66,12 +66,24 @@
     
     
     <!-- Modal para grabación -->
-    <div id="recordingModal">
-      <div>
-        <progress id="recordingProgressBar" max="100" value="0"></progress>
+    <div id="recordingModal"  style="display: none;">
+      <!-- Mensaje y barra de progreso mientras se genera -->
+      <div id="recordingStatus">
+        <p>Generando vídeo...</p>
+        <progress id="recordingProgressBar" value="0" max="100"></progress>
         <button id="cancelRecordingButton">Cancelar</button>
       </div>
+    
+      <!-- 📹 Reproductor de vídeo (oculto al inicio) -->
+      <video id="videoPreview" controls style="display: none; width: 80%; height: 80%;"></video>
+    
+      <!-- 💾 Botón de guardar vídeo (oculto al inicio) -->
+      <button id="saveVideoButton" style="display: none;">💾 Guardar vídeo</button>
+    
+      <!-- ❌ Botón de cerrar modal después de generar vídeo -->
+      <button id="closeModalButton" style="display: none;">❌ Cerrar</button>
     </div>
+    
 
     <div id="searchContainer">
       <input type="text" id="searchInput" placeholder="Buscar lugar..." />

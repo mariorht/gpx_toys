@@ -106,13 +106,11 @@ function exportMapImage(map, trackData, gpxFileName, selectedResolution) {
         map.fitBounds(bounds, { padding: 50, animate: false });
         
       
-        const recordingModal = document.getElementById('recordingModal');
-        const recordingProgressBar = document.getElementById('recordingProgressBar');
-        const cancelRecordingButton = document.getElementById('cancelRecordingButton');
-      
-        recordingModal.style.display = 'flex';
-        recordingProgressBar.value = 0;
-        cancelRecordingButton.style.display = 'none'; // Ocultamos el cancelar en foto
+        // 🚀 *** NO mostrar el recordingModal cuando exportamos imagen ***
+        const recordingModal = document.getElementById("recordingModal");
+        if (recordingModal) {
+            recordingModal.style.display = "none";
+        }
       
         // Esperar a que el mapa termine de redibujar tras el resize
         map.once('idle', () => {
@@ -144,111 +142,149 @@ function exportMapImage(map, trackData, gpxFileName, selectedResolution) {
         }
       }
 
-function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
+      function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
         if (trackData.length < 2) {
-          console.error('No hay track cargado');
-          return;
+            console.error("No hay track cargado");
+            return;
         }
-      
+    
         let FPS = 30;
-        const videoDuration = parseInt(document.getElementById('videoDuration').value) || 60;
-      
-      
+        const videoDuration = parseInt(document.getElementById("videoDuration").value) || 60;
+    
         const originalWidth = map._container.clientWidth;
         const originalHeight = map._container.clientHeight;
         const originalPosition = map._container.style.position;
         const originalTop = map._container.style.top;
         const originalLeft = map._container.style.left;
-      
+    
         // Redimensionar y centrar el canvas del mapa
         map._container.style.width = `${selectedResolution.width}px`;
         map._container.style.height = `${selectedResolution.height}px`;
-        map._container.style.position = 'fixed';
-        map._container.style.top = '50%';
-        map._container.style.left = '50%';
-        map._container.style.transform = 'translate(-50%, -50%)';
+        map._container.style.position = "fixed";
+        map._container.style.top = "50%";
+        map._container.style.left = "50%";
+        map._container.style.transform = "translate(-50%, -50%)";
         map.resize();
-      
+    
         const canvas = map.getCanvas();
-      
         const stream = canvas.captureStream(FPS);
-        const options = {
-          mimeType: 'video/webm;codecs=vp9',
-          videoBitsPerSecond: 10 * 1024 * 1024 // 10 Mbps
-        };
-      
-        const recorder = new MediaRecorder(stream, options);
-      
+        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+    
         const chunks = [];
         recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.push(e.data);
+            if (e.data.size > 0) chunks.push(e.data);
         };
-      
-        recorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'video/webm' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${gpxFileName}_${getTimestamp()}.webm`;
-          a.click();
-          cleanup();
-        };
-      
-        let currentFrame = 0;
-        const durationMs = videoDuration * 1000; // Duración personalizada
-        const totalFrames = FPS * durationMs / 1000;
-        const intervalMs = durationMs / totalFrames;
-      
-        const recordingModal = document.getElementById('recordingModal');
-        const recordingProgressBar = document.getElementById('recordingProgressBar');
-        const cancelRecordingButton = document.getElementById('cancelRecordingButton');
-            
+    
+        let cancelRequested = false; // 🔥 Controlar cancelación
+    
+        // Obtener elementos del DOM
+        const recordingModal = document.getElementById("recordingModal");
+        const recordingStatus = document.getElementById("recordingStatus");
+        const recordingProgressBar = document.getElementById("recordingProgressBar");
+        const cancelRecordingButton = document.getElementById("cancelRecordingButton");
+        const videoPreview = document.getElementById("videoPreview");
+        const saveVideoButton = document.getElementById("saveVideoButton");
+        const closeModalButton = document.getElementById("closeModalButton");
+    
+        // Mostrar el modal y los controles de grabación
         recordingModal.style.display = "flex";
+        recordingStatus.style.display = "block"; // 🔄 Asegurar que se muestre
+        recordingProgressBar.style.display = "block"; // 🔄 Hacer visible la barra de progreso
         recordingProgressBar.value = 0;
         cancelRecordingButton.style.display = "block";
+        videoPreview.style.display = "none";
+        saveVideoButton.style.display = "none";
+        closeModalButton.style.display = "none";
 
+    
         // 🎯 Evento de cancelar
-        let cancelRequested = false;
         cancelRecordingButton.onclick = () => {
-          cancelRequested = true;
-          recorder.stop(); // ⚠ Detener la grabación
-          cleanup(); // Limpiar estado
+            cancelRequested = true;
+            recorder.stop(); // ⚠ Detener la grabación
+            cleanup(); // Limpiar estado
         };
-          
-        recorder.start();
-      
-        function animateFrame() {
-          if (cancelRequested) {
+    
+        recorder.onstop = () => {
+            if (!cancelRequested) {
+                const blob = new Blob(chunks, { type: "video/webm" });
+                const url = URL.createObjectURL(blob);
+    
+                // 📹 Mostrar el vídeo en el reproductor
+                videoPreview.src = url;
+                videoPreview.style.display = "block";
+    
+                // 💾 Mostrar el botón de guardar
+                saveVideoButton.style.display = "block";
+                saveVideoButton.onclick = () => {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${gpxFileName}.webm`;
+                    a.click();
+                };
+    
+                // ❌ Mostrar botón de cerrar modal
+                closeModalButton.style.display = "block";
+                closeModalButton.onclick = () => {
+                    recordingModal.style.display = "none";
+                };
+    
+                // 🔄 Ocultar barra de progreso y estado de grabación
+                recordingStatus.style.display = "none";
+            } 
             cleanup();
-            return;
-          }
-      
-          const progress = currentFrame / (totalFrames - 1);
-          moveCyclist(map, trackData, progress);
-      
-          map.triggerRepaint();
-      
-          currentFrame++;
-          recordingProgressBar.value = (currentFrame / totalFrames) * 100;
-      
-          if (currentFrame < totalFrames) {
-            setTimeout(animateFrame, intervalMs);
-          } else {
-            recorder.stop();
-          }
+            
+        };
+    
+        let currentFrame = 0;
+        const totalFrames = FPS * videoDuration;
+        const intervalMs = (videoDuration * 1000) / totalFrames;
+    
+        function animateFrame() {
+            if (cancelRequested) {
+                cleanup();
+                return;
+            }
+    
+            const progress = currentFrame / totalFrames;
+            moveCyclist(map, trackData, progress);
+            map.triggerRepaint();
+    
+            currentFrame++;
+            recordingProgressBar.value = (currentFrame / totalFrames) * 100;
+    
+            if (currentFrame < totalFrames) {
+                setTimeout(animateFrame, intervalMs);
+            } else {
+                recorder.stop();
+            }
         }
-      
+    
         function cleanup() {
-          recordingModal.style.display = 'none';
+          // 🔄 Restaurar tamaño del mapa siempre
           map._container.style.width = `${originalWidth}px`;
           map._container.style.height = `${originalHeight}px`;
           map._container.style.position = originalPosition;
           map._container.style.top = originalTop;
           map._container.style.left = originalLeft;
-          map._container.style.transform = 'none';
+          map._container.style.transform = "none";
           map.resize();
-        }
       
-        animateFrame();
+          // 🔄 Ocultar la barra de progreso y estado de grabación
+          recordingStatus.style.display = "none"; 
+          cancelRecordingButton.style.display = "none";
+          recordingProgressBar.style.display = "none";
+      
+          if (cancelRequested) {
+              // 🔄 Si se canceló, ocultar todo
+              recordingModal.style.display = "none";
+              videoPreview.style.display = "none"; 
+              saveVideoButton.style.display = "none";
+              closeModalButton.style.display = "none";
+          }
       }
-        
+      
+    
+        recorder.start();
+        animateFrame();
+    }
+    
