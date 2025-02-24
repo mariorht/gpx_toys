@@ -103,3 +103,20 @@ export function decimatePoints(points, minDistanceMeters = 5) {
     }
   }
   
+
+
+  export function calculateTotalDistance(trackData) {
+    if (trackData.length < 2) return 0;
+  
+    let totalDistance = 0;
+  
+    for (let i = 1; i < trackData.length; i++) {
+        const prev = trackData[i - 1];
+        const curr = trackData[i];
+  
+        totalDistance += haversineDistance(prev.lat, prev.lon, curr.lat, curr.lon);
+    }
+  
+    return totalDistance / 1000; // Convertir a km
+  }
+  

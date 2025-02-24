@@ -16,3 +16,6 @@ export function getMinMax(values) {
 export function getTimestamp() {
   return new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15);
 }
+
+
+

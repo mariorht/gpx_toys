@@ -7,20 +7,11 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="style.css" />
 
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script>
-      function initClient() {
-        gapi.load("auth2", function () {
-          gapi.auth2.init({
-            client_id: "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com",
-          });
-        });
-      }
-    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 
   </head>
-  <body onload="initClient()">
+  <body>
     <div id="map"></div>
 
     <div id="controls">

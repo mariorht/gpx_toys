@@ -1,5 +1,6 @@
 import { getTimestamp } from './helpers.js';
 import { moveCyclist } from '../map/trackRenderer.js';
+import { calculateTotalDistance } from './geoUtils.js';
 
 export function setupExportButtons(map, getTrackData, getFileName, getSelectedResolution) {
   let isRecordingVideo = false;
@@ -226,7 +227,7 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
 
           // 📤 Mostrar el botón para subir a YouTube
           uploadYouTubeButton.style.display = "block";
-          uploadYouTubeButton.onclick = () => uploadToYouTube(blob, gpxFileName);
+          uploadYouTubeButton.onclick = () => uploadToYouTube(blob, gpxFileName, trackData);
 
           // ❌ Mostrar botón de cerrar modal
           closeModalButton.style.display = "block";
@@ -299,20 +300,56 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
 
 
 
-async function uploadToYouTube(videoBlob, fileName) {
+async function uploadToYouTube(videoBlob, fileName, trackData) {
   const CLIENT_ID = "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com";
   const SCOPES = "https://www.googleapis.com/auth/youtube.upload";
 
   try {
-      // 1️⃣ Autenticación con OAuth
-      const authResponse = await gapi.auth2.getAuthInstance().signIn({
-          scope: SCOPES,
-      });
+      // 1️⃣ Iniciar el flujo de autenticación con GIS
+      const tokenResponse = await google.accounts.oauth2
+          .initTokenClient({
+              client_id: CLIENT_ID,
+              scope: SCOPES,
+              callback: (response) => {
+                  if (response.error) {
+                      console.error("🚨 Error de autenticación:", response);
+                      alert("No se pudo autenticar con YouTube.");
+                      return;
+                  }
+                  uploadVideoToYouTube(response.access_token, videoBlob, fileName,trackData);
+              },
+          })
+          .requestAccessToken();
+  } catch (error) {
+      console.error("🚨 Error en la autenticación:", error);
+      alert("Error en la autenticación con YouTube.");
+  }
+}
 
-      const accessToken = authResponse.getAuthResponse().access_token;
-      console.log("✅ Autenticado en YouTube");
+async function uploadVideoToYouTube(accessToken, videoBlob, fileName, trackData) {
+  try {
+    const formattedTimestamp = getTimestamp();
+    const videoTitle = `${fileName} - ${formattedTimestamp}`;
+    
+    // Obtener datos de la ruta
+    const startTime = new Date(trackData[0].time).toLocaleString();
+    const endTime = new Date(trackData[trackData.length - 1].time).toLocaleString();
+    const totalDistance = calculateTotalDistance(trackData).toFixed(2); // Distancia en km
+    const duration = ((trackData[trackData.length - 1].time - trackData[0].time) / 1000 / 60).toFixed(1); // Minutos
 
-      // 2️⃣ Crear el archivo de vídeo
+    // Descripción detallada con datos
+    const videoDescription = `🚴 Ruta GPX - ${fileName}
+
+    📅 Fecha: ${formattedTimestamp}
+    🕒 Inicio: ${startTime}
+    🏁 Fin: ${endTime}
+    📏 Distancia total: ${totalDistance} km
+    ⏳ Duración: ${duration} min
+
+    🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)
+    `;
+    
+    // 2️⃣ Crear el archivo de vídeo
       const formData = new FormData();
       formData.append(
           "metadata",
@@ -320,13 +357,13 @@ async function uploadToYouTube(videoBlob, fileName) {
               [
                   JSON.stringify({
                       snippet: {
-                          title: fileName,
-                          description: "Vídeo generado con GPX Toys",
+                          title: videoTitle,
+                          description: videoDescription,
                           tags: ["GPX", "Animación", "Mapa"],
-                          categoryId: "22", // Categoría de "People & Blogs"
+                          categoryId: "22",
                       },
                       status: {
-                          privacyStatus: "public", // Puede ser "private" o "unlisted"
+                          privacyStatus: "unlisted",
                       },
                   }),
               ],
@@ -335,7 +372,7 @@ async function uploadToYouTube(videoBlob, fileName) {
       );
       formData.append("video", videoBlob);
 
-      // 3️⃣ Subir a YouTube
+      // 3️⃣ Subir a YouTube con el token de acceso
       const response = await fetch(
           "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status",
           {
@@ -355,6 +392,6 @@ async function uploadToYouTube(videoBlob, fileName) {
       alert(`Vídeo subido con éxito: https://www.youtube.com/watch?v=${result.id}`);
   } catch (error) {
       console.error("🚨 Error al subir a YouTube:", error);
-      alert("Error al subir el vídeo a YouTube. Revisa la consola.");
+      alert("Error al subir el vídeo a YouTube.");
   }
 }
