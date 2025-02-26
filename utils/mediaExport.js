@@ -187,7 +187,7 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
   const videoPreview = document.getElementById("videoPreview");
   const saveVideoButton = document.getElementById("saveVideoButton");
   const closeModalButton = document.getElementById("closeModalButton");
-  const uploadYouTubeButton = document.getElementById("uploadYouTubeButton");
+  const uploadToYouTubeButton = document.getElementById("uploadYouTubeButton");
 
   // Mostrar el modal y los controles de grabación
   recordingModal.style.display = "flex";
@@ -227,7 +227,8 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
 
           // 📤 Mostrar el botón para subir a YouTube
           uploadYouTubeButton.style.display = "block";
-          uploadYouTubeButton.onclick = () => uploadToYouTube(blob, gpxFileName, trackData);
+          uploadYouTubeButton.onclick = () => showUploadModal(blob, gpxFileName, trackData);
+
 
           // ❌ Mostrar botón de cerrar modal
           closeModalButton.style.display = "block";
@@ -300,79 +301,53 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
 
 
 
-async function uploadToYouTube(videoBlob, fileName, trackData) {
-  const CLIENT_ID = "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com";
-  const SCOPES = "https://www.googleapis.com/auth/youtube.upload";
-
+async function uploadVideoToYouTube(accessToken, videoBlob, title, category, tags, trackData) {
   try {
-      // 1️⃣ Iniciar el flujo de autenticación con GIS
-      const tokenResponse = await google.accounts.oauth2
-          .initTokenClient({
-              client_id: CLIENT_ID,
-              scope: SCOPES,
-              callback: (response) => {
-                  if (response.error) {
-                      console.error("🚨 Error de autenticación:", response);
-                      alert("No se pudo autenticar con YouTube.");
-                      return;
-                  }
-                  uploadVideoToYouTube(response.access_token, videoBlob, fileName,trackData);
-              },
-          })
-          .requestAccessToken();
-  } catch (error) {
-      console.error("🚨 Error en la autenticación:", error);
-      alert("Error en la autenticación con YouTube.");
-  }
-}
+      const formattedTimestamp = getTimestamp();
+      const videoTitle = `${title} - ${formattedTimestamp}`;
 
-async function uploadVideoToYouTube(accessToken, videoBlob, fileName, trackData) {
-  try {
-    const formattedTimestamp = getTimestamp();
-    const videoTitle = `${fileName} - ${formattedTimestamp}`;
-    
-    // Obtener datos de la ruta
-    const startTime = new Date(trackData[0].time).toLocaleString();
-    const endTime = new Date(trackData[trackData.length - 1].time).toLocaleString();
-    const totalDistance = calculateTotalDistance(trackData).toFixed(2); // Distancia en km
-    const duration = ((trackData[trackData.length - 1].time - trackData[0].time) / 1000 / 60).toFixed(1); // Minutos
+      const startTime = new Date(trackData[0].time).toLocaleString();
+      const endTime = new Date(trackData[trackData.length - 1].time).toLocaleString();
+      const totalDistance = calculateTotalDistance(trackData).toFixed(2);
+      const duration = ((trackData[trackData.length - 1].time - trackData[0].time) / 1000 / 60).toFixed(1);
 
-    // Descripción detallada con datos
-    const videoDescription = `🚴 Ruta GPX - ${fileName}
+      const videoDescription = `🚴 Ruta GPX - ${title}
 
-    📅 Fecha: ${formattedTimestamp}
-    🕒 Inicio: ${startTime}
-    🏁 Fin: ${endTime}
-    📏 Distancia total: ${totalDistance} km
-    ⏳ Duración: ${duration} min
+📅 Fecha: ${formattedTimestamp}
+🕒 Inicio: ${startTime}
+🏁 Fin: ${endTime}
+📏 Distancia total: ${totalDistance} km
+⏳ Duración: ${duration} min
 
-    🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)
-    `;
-    
-    // 2️⃣ Crear el archivo de vídeo
+🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)`;
+
+        // Mostrar mensaje de estado mientras sube
+        const uploadStatus = document.getElementById("uploadStatus");
+        uploadStatus.innerHTML = `<p>📤 Subiendo vídeo a YouTube... Por favor, espera.</p>`;
+        uploadStatus.style.display = "block";
+
+      // Crear el archivo de vídeo
       const formData = new FormData();
       formData.append(
           "metadata",
           new Blob(
-              [
-                  JSON.stringify({
-                      snippet: {
-                          title: videoTitle,
-                          description: videoDescription,
-                          tags: ["GPX", "Animación", "Mapa"],
-                          categoryId: "22",
-                      },
-                      status: {
-                          privacyStatus: "unlisted",
-                      },
-                  }),
-              ],
+              [JSON.stringify({
+                  snippet: {
+                      title: videoTitle,
+                      description: videoDescription,
+                      tags: tags,
+                      categoryId: category,
+                  },
+                  status: {
+                      privacyStatus: "unlisted",
+                  },
+              })],
               { type: "application/json" }
           )
       );
       formData.append("video", videoBlob);
 
-      // 3️⃣ Subir a YouTube con el token de acceso
+      // Subir a YouTube con el token de acceso
       const response = await fetch(
           "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status",
           {
@@ -389,9 +364,62 @@ async function uploadVideoToYouTube(accessToken, videoBlob, fileName, trackData)
       const result = await response.json();
       console.log("✅ Vídeo subido con éxito:", result);
 
-      alert(`Vídeo subido con éxito: https://www.youtube.com/watch?v=${result.id}`);
+      const videoId = result.id;
+
+      // Mostrar el enlace del vídeo y permitir cerrar
+      uploadStatus.innerHTML = `
+          <p>✅ Vídeo subido con éxito:</p>
+          <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank">📺 Ver en YouTube</a>
+      `;
+
+
   } catch (error) {
       console.error("🚨 Error al subir a YouTube:", error);
-      alert("Error al subir el vídeo a YouTube.");
-  }
+      // Mostrar el enlace del vídeo y permitir cerrar
+      uploadStatus.innerHTML = `
+          <p>🚨 Error al subir el vídeo:</p>
+      `;  }
+}
+
+
+function showUploadModal(videoBlob, fileName, trackData) {
+  document.getElementById("recordingModal").style.display = "none";
+  const uploadModal = document.getElementById("uploadModal");
+  uploadModal.style.display = "block";
+
+  document.getElementById("videoTitle").value = fileName;
+
+  document.getElementById("cancelUpload").onclick = () => {
+      uploadModal.style.display = "none";
+  };
+
+  document.getElementById("confirmUpload").onclick = () => {
+      const title = document.getElementById("videoTitle").value;
+      const category = document.getElementById("videoCategory").value;
+      const tags = document.getElementById("videoTags").value.split(",").map(tag => tag.trim());
+
+      authenticateAndUpload(videoBlob, title, category, tags, trackData);
+  };
+
+
+}
+
+
+
+function authenticateAndUpload(videoBlob, title, category, tags, trackData) {
+  const CLIENT_ID = "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com";
+  const SCOPES = "https://www.googleapis.com/auth/youtube.upload";
+
+  google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (response) => {
+          if (response.error) {
+              console.error("🚨 Error de autenticación:", response);
+              alert("No se pudo autenticar con YouTube.");
+              return;
+          }
+          uploadVideoToYouTube(response.access_token, videoBlob, title, category, tags, trackData);
+      },
+  }).requestAccessToken();
 }

@@ -304,3 +304,61 @@ body, html {
   width: 100%;
   margin-top: 10px;
 }
+
+
+
+#uploadModal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 1001; /* Asegurar que está por encima del mapa */
+}
+
+#uploadModal h3 {
+  text-align: center;
+}
+
+#uploadModal input,
+#uploadModal select {
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#uploadModal button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 5px;
+  transition: background 0.3s ease;
+}
+
+#confirmUpload {
+  background: #007bff;
+  color: white;
+}
+
+#confirmUpload:hover {
+  background: #0056b3;
+}
+
+#cancelUpload {
+  background: #dc3545;
+  color: white;
+}
+
+#cancelUpload:hover {
+  background: #a71d2a;
+}
