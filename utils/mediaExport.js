@@ -334,9 +334,8 @@ async function uploadVideoToYouTube(accessToken, videoBlob, title, category, tag
               [JSON.stringify({
                   snippet: {
                       title: videoTitle,
-                      description: videoDescription,
-                      tags: tags,
-                      categoryId: category,
+                      tags: ["GPX", "Animación", "Mapa"],
+                      categoryId: "22",
                   },
                   status: {
                       privacyStatus: "unlisted",
@@ -396,7 +395,7 @@ function showUploadModal(videoBlob, fileName, trackData) {
   document.getElementById("confirmUpload").onclick = () => {
       const title = document.getElementById("videoTitle").value;
       const category = document.getElementById("videoCategory").value;
-      const tags = document.getElementById("videoTags").value.split(",").map(tag => tag.trim());
+      const tags = document.getElementById("videoTags").value.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
 
       authenticateAndUpload(videoBlob, title, category, tags, trackData);
   };
