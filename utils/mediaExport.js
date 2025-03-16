@@ -313,7 +313,7 @@ async function uploadVideoToYouTube(accessToken, videoBlob, trackData) {
       const totalDistance = calculateTotalDistance(trackData).toFixed(2);
       const duration = ((trackData[trackData.length - 1].time - trackData[0].time) / 1000 / 60).toFixed(1);
 
-      const videoDescription = `Ruta GPX - ${title}
+      const videoDescription = `${title}
 
       📅 Fecha: ${formattedTimestamp}
       🕒 Inicio: ${startTime}
@@ -321,7 +321,7 @@ async function uploadVideoToYouTube(accessToken, videoBlob, trackData) {
       📏 Distancia total: ${totalDistance} km
       ⏳ Duración: ${duration} min
 
-      🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)`;
+      🎥 Animación generada automáticamente con GPX Toys (mariorht.github.io/gpx_toys/)`;
 
       // Mostrar mensaje de estado mientras sube
       const uploadStatus = document.getElementById("uploadStatus");
