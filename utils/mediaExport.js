@@ -301,9 +301,11 @@ function recordTrackAnimation(map, trackData, gpxFileName, selectedResolution) {
 
 
 
-async function uploadVideoToYouTube(accessToken, videoBlob, title, category, tags, trackData) {
+async function uploadVideoToYouTube(accessToken, videoBlob, trackData) {
   try {
       const formattedTimestamp = getTimestamp();
+
+      const title = document.getElementById("videoTitle").value;
       const videoTitle = `${title} - ${formattedTimestamp}`;
 
       const startTime = new Date(trackData[0].time).toLocaleString();
@@ -311,20 +313,20 @@ async function uploadVideoToYouTube(accessToken, videoBlob, title, category, tag
       const totalDistance = calculateTotalDistance(trackData).toFixed(2);
       const duration = ((trackData[trackData.length - 1].time - trackData[0].time) / 1000 / 60).toFixed(1);
 
-      const videoDescription = `🚴 Ruta GPX - ${title}
+      const videoDescription = `Ruta GPX - ${title}
 
-📅 Fecha: ${formattedTimestamp}
-🕒 Inicio: ${startTime}
-🏁 Fin: ${endTime}
-📏 Distancia total: ${totalDistance} km
-⏳ Duración: ${duration} min
+      📅 Fecha: ${formattedTimestamp}
+      🕒 Inicio: ${startTime}
+      🏁 Fin: ${endTime}
+      📏 Distancia total: ${totalDistance} km
+      ⏳ Duración: ${duration} min
 
-🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)`;
+      🎥 Animación generada automáticamente con GPX Toys (https://mariorht.github.io/gpx_toys/)`;
 
-        // Mostrar mensaje de estado mientras sube
-        const uploadStatus = document.getElementById("uploadStatus");
-        uploadStatus.innerHTML = `<p>📤 Subiendo vídeo a YouTube... Por favor, espera.</p>`;
-        uploadStatus.style.display = "block";
+      // Mostrar mensaje de estado mientras sube
+      const uploadStatus = document.getElementById("uploadStatus");
+      uploadStatus.innerHTML = `<p>📤 Subiendo vídeo a YouTube... Por favor, espera.</p>`;
+      uploadStatus.style.display = "block";
 
       // Crear el archivo de vídeo
       const formData = new FormData();
@@ -334,8 +336,9 @@ async function uploadVideoToYouTube(accessToken, videoBlob, title, category, tag
               [JSON.stringify({
                   snippet: {
                       title: videoTitle,
+                      description: videoDescription,
                       tags: ["GPX", "Animación", "Mapa"],
-                      categoryId: "22",
+                      categoryId: "17",
                   },
                   status: {
                       privacyStatus: "unlisted",
@@ -393,11 +396,7 @@ function showUploadModal(videoBlob, fileName, trackData) {
   };
 
   document.getElementById("confirmUpload").onclick = () => {
-      const title = document.getElementById("videoTitle").value;
-      const category = document.getElementById("videoCategory").value;
-      const tags = document.getElementById("videoTags").value.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
-
-      authenticateAndUpload(videoBlob, title, category, tags, trackData);
+      authenticateAndUpload(videoBlob, trackData);
   };
 
 
@@ -405,7 +404,7 @@ function showUploadModal(videoBlob, fileName, trackData) {
 
 
 
-function authenticateAndUpload(videoBlob, title, category, tags, trackData) {
+function authenticateAndUpload(videoBlob, trackData) {
   const CLIENT_ID = "832072877207-bf2fkssg691sl8ghs5965a8vmccatd01.apps.googleusercontent.com";
   const SCOPES = "https://www.googleapis.com/auth/youtube.upload";
 
@@ -418,7 +417,7 @@ function authenticateAndUpload(videoBlob, title, category, tags, trackData) {
               alert("No se pudo autenticar con YouTube.");
               return;
           }
-          uploadVideoToYouTube(response.access_token, videoBlob, title, category, tags, trackData);
+          uploadVideoToYouTube(response.access_token, videoBlob, trackData);
       },
   }).requestAccessToken();
 }
